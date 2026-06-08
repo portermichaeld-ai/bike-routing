@@ -173,7 +173,7 @@ def main():
 
     # ── 5. Load NYSDOT inventory ───────────────────────────────────────────────
     print("Loading NYSDOT roadway inventory...")
-    nysri = gpd.read_file(NYSRI_PATH).set_crs(CRS_GEO, allow_override=True)
+    nysri = gpd.read_file(NYSRI_PATH)
     print(f"  {len(nysri):,} NYSDOT segments loaded")
 
     # ── 6. Reproject both datasets to UTM 18N ─────────────────────────────────
