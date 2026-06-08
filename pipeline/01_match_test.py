@@ -282,6 +282,35 @@ def main():
         _write_geojson(nysri_out_gdf, nysri_out)
         print(f"Wrote {nysri_out} ({len(nysri_out_gdf)} features)")
 
+        # Combined debug layer: one feature per geometry, source-tagged, pair_id links
+        # each OSM way to its matched NYSRI segment. Load this single file in ArcGIS
+        # and symbolise by 'source' to see matched pairs side by side.
+        debug_rows = []
+        osm_matched = osm_enriched[osm_enriched["nysri_id"].notna()].copy()
+        for _, row in osm_matched.iterrows():
+            debug_rows.append({
+                "pair_id": int(row["osm_way_id"]),
+                "source": "osm",
+                "osm_highway": row.get("osm_highway"),
+                "match_overlap": row.get("match_overlap"),
+                "match_bearing_diff": row.get("match_bearing_diff"),
+                "geometry": row.geometry,
+            })
+        nysri_geo = nysri_out_gdf.copy()
+        for _, row in nysri_geo.iterrows():
+            debug_rows.append({
+                "pair_id": int(row["osm_way_id"]),
+                "source": "nysri",
+                "osm_highway": None,
+                "match_overlap": None,
+                "match_bearing_diff": None,
+                "geometry": row.geometry,
+            })
+        debug_gdf = gpd.GeoDataFrame(debug_rows, geometry="geometry", crs=CRS_GEO)
+        debug_out = OUTPUT_DIR / "matches_debug.geojson"
+        _write_geojson(debug_gdf, debug_out)
+        print(f"Wrote {debug_out} ({len(debug_gdf)} features — {n_matched} OSM + {n_matched} NYSRI pairs)")
+
     # ── 10. Summary ───────────────────────────────────────────────────────────
     print(f"\nSummary:")
     print(f"  OSM ways sampled:             {len(osm_enriched)}")
