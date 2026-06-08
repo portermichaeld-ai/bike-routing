@@ -15,6 +15,7 @@ Output (data/ny/match-test/):
   nysri_matched.geojson -- matched NYSDOT segments, linked back by osm_way_id
 """
 
+import json
 import math
 import random
 from pathlib import Path
@@ -131,6 +132,15 @@ def bearing_diff(a, b) -> float:
     """Unsigned angular difference between two LineStrings, 0–90°."""
     diff = abs(_bearing(a) - _bearing(b)) % 180
     return min(diff, 180 - diff)
+
+
+def _write_geojson(gdf: "gpd.GeoDataFrame", path: "Path") -> None:
+    """Write RFC 7946-compliant GeoJSON (no 'crs' member). ArcGIS Online and
+    most web tools expect the crs-less form and assume WGS84 lon/lat."""
+    fc = json.loads(gdf.to_json())
+    fc.pop("crs", None)
+    with open(path, "w") as fh:
+        json.dump(fc, fh)
 
 
 # ── main ───────────────────────────────────────────────────────────────────────
@@ -262,14 +272,14 @@ def main():
 
     # ── 9. Export ──────────────────────────────────────────────────────────────
     osm_out = OUTPUT_DIR / "osm_sample.geojson"
-    osm_enriched.to_file(osm_out, driver="GeoJSON")
+    _write_geojson(osm_enriched, osm_out)
     print(f"Wrote {osm_out} ({len(osm_enriched)} features)")
 
     if matched_nysri_rows:
         nysri_out_gdf = gpd.GeoDataFrame(matched_nysri_rows, geometry="geometry", crs=CRS_METER)
         nysri_out_gdf = nysri_out_gdf.to_crs(CRS_GEO)
         nysri_out = OUTPUT_DIR / "nysri_matched.geojson"
-        nysri_out_gdf.to_file(nysri_out, driver="GeoJSON")
+        _write_geojson(nysri_out_gdf, nysri_out)
         print(f"Wrote {nysri_out} ({len(nysri_out_gdf)} features)")
 
     # ── 10. Summary ───────────────────────────────────────────────────────────
